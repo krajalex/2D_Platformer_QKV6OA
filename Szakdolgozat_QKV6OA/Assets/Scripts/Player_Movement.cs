@@ -5,11 +5,13 @@ using UnityEngine;
 
 public class Player_Movement : MonoBehaviour
 {
-    private float movementInputDirection; //A karakter irányát tárolja el
+    private float movementInputDirection = 0.0f; //A karakter irányát tárolja el
 
     private bool isFacingRight = true; //Eltárolja, hogy a karakter éppen a megfelelő irányba néz-e. Mivel a karakter a játék kezdetekor mindig a jó irányba néz, ezért "true" az alapértéke
+    private bool isWalking = false;
 
-    private Rigidbody2D rigidbody2D; //A karakter fizikai részére való hivatkozáshoz kell, tárolásra
+    private Rigidbody2D rb; //A karakter fizikai részére való hivatkozáshoz kell, tárolásra
+    private Animator animator;
 
     public float movementSpeed = 10.0f; //A karakter mozgási sebessége
     public float jumpForce = 16.0f;
@@ -17,7 +19,8 @@ public class Player_Movement : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        rigidbody2D = GetComponent<Rigidbody2D>();
+        rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
     }
 
     // Update is called once per frame
@@ -25,6 +28,7 @@ public class Player_Movement : MonoBehaviour
     {
         CheckInput();
         CheckMovementDirection();
+        UpdateAnimations();
     }
 
     void FixedUpdate()
@@ -36,6 +40,14 @@ public class Player_Movement : MonoBehaviour
     {
         if (isFacingRight && movementInputDirection < 0) { Flip(); }
         else if (!isFacingRight && movementInputDirection > 0) { Flip(); }
+
+        if (movementInputDirection != 0) { isWalking = true; }
+        else { isWalking = false; }
+    }
+
+    private void UpdateAnimations()
+    {
+        animator.SetBool("isWalking", isWalking);
     }
 
     private void CheckInput()
@@ -50,12 +62,12 @@ public class Player_Movement : MonoBehaviour
 
     private void Jump()
     {
-        rigidbody2D.velocity = new Vector2(rigidbody2D.velocity.x, jumpForce);
+        rb.velocity = new Vector2(rb.velocity.x, jumpForce);
     }
 
     private void ApplyMovement()
     {
-        rigidbody2D.velocity = new Vector2(movementSpeed * movementInputDirection, rigidbody2D.velocity.y);
+        rb.velocity = new Vector2(movementSpeed * movementInputDirection, rb.velocity.y);
     }
 
     private void Flip()
