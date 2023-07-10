@@ -9,6 +9,7 @@ public class Player_Movement : MonoBehaviour
     private float movementInputVertical = 0.0f;
 
     private int amountOfJumpsLeft = 2;
+    private int facingDirection = 1; //Ha az értéke -1, akkor balra néz a karakter, ha pedig +1, akkor jobbra
 
     private bool isFacingRight = true; //Eltárolja, hogy a karakter éppen a megfelelő irányba néz-e. Mivel a karakter a játék kezdetekor mindig a jó irányba néz, ezért "true" az alapértéke
     private bool isWalking = false;
@@ -30,6 +31,12 @@ public class Player_Movement : MonoBehaviour
     public float movementForceInAir = 25.0f;
     public float airDragMultiplier = 0.95f; //Légellenállás megvalósítása, amikor a karakter esik lefelé, és nem kap mellette semmilyen egyéb input-ot.
     public float variableJumpHeightMultiplier = 0.5f;
+    public float wallHopForce;
+    public float wallJumpForce;
+
+    public Vector2 wallHopDirection; //Meghatározza, hogy melyik irányba ugrik a karakter a falakról, ezzel lehet módosítani, hogy mennyire legyen meredek a falról való elugrás
+    public Vector2 wallJumpDirection;
+
 
     public Transform groundCheck;
     public Transform wallCheck;
@@ -42,6 +49,9 @@ public class Player_Movement : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         amountOfJumpsLeft = amountOfJumps;
+        wallHopDirection.Normalize(); //1-re állítja mind a két koordinátát
+        wallJumpDirection.Normalize(); //1-re állítja mind a két koordinátát
+        //Azért kell Normalize-olni, hogy amikor erőt adunk hozzá, akkor mindig ugyanannyit adjunk hozzá
     }
 
     // Update is called once per frame
@@ -81,7 +91,7 @@ public class Player_Movement : MonoBehaviour
 
     private void CheckIfCanJump()
     {
-        if (isGrounded && rb.velocity.y == 0) 
+        if ((isGrounded && rb.velocity.y == 0) || isWallSliding)
         {
             amountOfJumpsLeft = amountOfJumps;
         }
@@ -129,10 +139,26 @@ public class Player_Movement : MonoBehaviour
 
     private void Jump()
     {
-        if (canJump)
+        if (canJump && !isWallSliding)
         {
             rb.velocity = new Vector2(rb.velocity.x, jumpForce);
             amountOfJumpsLeft--;
+        }
+
+        else if (isWallSliding && movementInputDirection == 0 && canJump) //Wall hop
+        {
+            isWallSliding = false;
+            amountOfJumpsLeft--;
+            Vector2 forceToAdd = new Vector2(wallHopForce * wallHopDirection.x * -facingDirection, wallHopForce * wallHopDirection.y);
+            rb.AddForce(forceToAdd, ForceMode2D.Impulse);
+        }
+
+        else if((isWallSliding || isTouchingWall) && movementInputDirection != 0 && canJump) //Wall jump
+        {
+            isWallSliding = false;
+            amountOfJumpsLeft--;
+            Vector2 forceToAdd = new Vector2(wallJumpForce * wallJumpDirection.x * movementInputDirection, wallJumpForce * wallJumpDirection.y);
+            rb.AddForce(forceToAdd, ForceMode2D.Impulse);
         }
     }
 
@@ -172,6 +198,7 @@ public class Player_Movement : MonoBehaviour
     {
         if (!isWallSliding)
         {
+            facingDirection *= -1; //A +1-et -1-re, a -1-et +1-re változtatja, amikor megfordítjuk a karaktert
             isFacingRight = !isFacingRight;
             transform.Rotate(0.0f, 180.0f, 0.0f);
         }
