@@ -2825,8 +2825,8 @@ GameObject:
   m_Component:
   - component: {fileID: 458844821}
   - component: {fileID: 458844822}
-  - component: {fileID: 458844823}
   - component: {fileID: 458844827}
+  - component: {fileID: 458844823}
   - component: {fileID: 458844825}
   - component: {fileID: 458844826}
   m_Layer: 0
@@ -2945,7 +2945,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   amountOfJumps: 2
-  movementSpeed: 9
+  movementSpeed: 10
   jumpForce: 20
   groundCheckRadius: 0.3
   wallCheckDistance: 0.36
@@ -2955,8 +2955,9 @@ MonoBehaviour:
   variableJumpHeightMultiplier: 0.5
   wallHopForce: 10
   wallJumpForce: 30
-  jumpTimerSet: 0.5
+  jumpTimerSet: 0.15
   turnTimerSet: 0.1
+  wallJumpTimerSet: 0.5
   wallHopDirection: {x: 1, y: 0.5}
   wallJumpDirection: {x: 1, y: 2}
   groundCheck: {fileID: 1343485862}

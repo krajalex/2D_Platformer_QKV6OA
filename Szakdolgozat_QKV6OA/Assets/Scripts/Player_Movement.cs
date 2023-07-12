@@ -105,15 +105,16 @@ public class Player_Movement : MonoBehaviour
 
     private void CheckIfCanJump()
     {
-        if (isGrounded && rb.velocity.y <= 0.01) //if ((isGrounded && rb.velocity.y == 0) || isWallSliding) ; így nem volt jó (videóban <= 0 volt)(6A-tól), mert amikor a karakter a földön van, akkor mindig egy kicsit pozitív az y koordinátán a sebessége
+        if (isGrounded && rb.velocity.y <= 0.01f) //if ((isGrounded && rb.velocity.y == 0) || isWallSliding) -> így nem volt jó ; (videóban <= 0 volt)(6A-tól), mert amikor a karakter a földön van, akkor mindig egy kicsit pozitív az y koordinátán a sebessége
         {
             amountOfJumpsLeft = amountOfJumps;
         }
         if (isTouchingWall)
         {
+            checkJumpMultiplier = false;
             canWallJump = true;
         }
-        if (amountOfJumpsLeft == 0)
+        if (amountOfJumpsLeft <= 0)
         {
             canNormalJump = false;
         }
@@ -128,8 +129,16 @@ public class Player_Movement : MonoBehaviour
         if (isFacingRight && movementInputDirection < 0) { Flip(); }
         else if (!isFacingRight && movementInputDirection > 0) { Flip(); }
 
-        if (movementInputDirection != 0) { isWalking = true; }
-        else { isWalking = false; }
+        if (movementInputDirection != 0 && !isWallSliding && isGrounded) //Én használtam
+        {
+            isWalking = true;
+        }
+        //if (rb.velocity.x >= 0) { isWalking = true; } //Videóban használja
+        //if (Mathf.Abs(rb.velocity.x) >= 0.01f) { isWalking = true; }
+        else
+        {
+            isWalking = false;
+        }
     }
 
     private void UpdateAnimations()
@@ -146,7 +155,7 @@ public class Player_Movement : MonoBehaviour
 
         if (Input.GetButtonDown("Jump"))
         {
-            if (isGrounded || (amountOfJumpsLeft > 0 && isTouchingWall))
+            if (isGrounded || (amountOfJumpsLeft > 0 && !isTouchingWall))
             {
                 NormalJump();
             }
@@ -168,7 +177,9 @@ public class Player_Movement : MonoBehaviour
             }
         }
 
-        if (!canMove)
+
+        //if (turnTimer >= 0)
+        if (!canMove) //Videóban ez van
         {
             turnTimer -= Time.deltaTime;
 
@@ -248,7 +259,7 @@ public class Player_Movement : MonoBehaviour
 
     private void NormalJump()
     {
-        if (canNormalJump && !isWallSliding)
+        if (canNormalJump)
         {
             rb.velocity = new Vector2(rb.velocity.x, jumpForce);
             amountOfJumpsLeft--;
