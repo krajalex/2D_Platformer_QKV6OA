@@ -7,10 +7,12 @@ public class Player_Movement : MonoBehaviour
 {
     private float movementInputDirection; //A karakter irányát tárolja el
     private float jumpTimer;
-
+    private float turnTimer;
+    private float wallJumpTimer;
 
     private int amountOfJumpsLeft;
     private int facingDirection = 1; //Ha az értéke -1, akkor balra néz a karakter, ha pedig +1, akkor jobbra
+    private int lastWallJumpDirection;
 
     private bool isFacingRight = true; //Eltárolja, hogy a karakter éppen a megfelelő irányba néz-e. Mivel a karakter a játék kezdetekor mindig a jó irányba néz, ezért "true" az alapértéke
     private bool isWalking;
@@ -21,6 +23,10 @@ public class Player_Movement : MonoBehaviour
     private bool canNormalJump;
     private bool canWallJump;
     private bool isAttemptingToJump;
+    private bool checkJumpMultiplier;
+    private bool canMove;
+    private bool canFlip;
+    private bool hasWallJumped;
 
     private Rigidbody2D rb; //A karakter fizikai részére való hivatkozáshoz kell, tárolásra
     private Animator animator;
@@ -38,6 +44,8 @@ public class Player_Movement : MonoBehaviour
     public float wallHopForce;
     public float wallJumpForce;
     public float jumpTimerSet = 0.15f;
+    public float turnTimerSet = 0.1f;
+    public float wallJumpTimerSet = 0.5f;
 
     public Vector2 wallHopDirection; //Meghatározza, hogy melyik irányba ugrik a karakter a falakról, ezzel lehet módosítani, hogy mennyire legyen meredek a falról való elugrás
     public Vector2 wallJumpDirection;
@@ -78,7 +86,7 @@ public class Player_Movement : MonoBehaviour
 
     private void CheckIfWallSliding()
     {
-        if (isTouchingWall && movementInputDirection == facingDirection)
+        if (isTouchingWall && movementInputDirection == facingDirection && rb.velocity.y < 0) //6B-től && rb.velocity.y < 0, hogy csak akkor WallSlide-oljon a karakter, hogyha lefelé halad az y tengelyen.
         {
             isWallSliding = true;
         }
@@ -149,8 +157,31 @@ public class Player_Movement : MonoBehaviour
             }
         }
 
-        if (Input.GetButtonUp("Jump"))
+        if (Input.GetButtonDown("Horizontal") && isTouchingWall)
         {
+            if (!isGrounded && movementInputDirection != facingDirection)
+            {
+                canMove = false;
+                canFlip = false;
+
+                turnTimer = turnTimerSet;
+            }
+        }
+
+        if (!canMove)
+        {
+            turnTimer -= Time.deltaTime;
+
+            if (turnTimer <= 0)
+            {
+                canMove = true;
+                canFlip = true;
+            }
+        }
+
+        if (checkJumpMultiplier && !Input.GetButton("Jump")) //6B-ig GetButtonUp, 6B-től !GetButton, tehát éppen nem nyomjuk az ugrás gombot
+        {
+            checkJumpMultiplier = false;
             rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * variableJumpHeightMultiplier);
         }
     }
@@ -173,6 +204,23 @@ public class Player_Movement : MonoBehaviour
         if (isAttemptingToJump)
         {
             jumpTimer -= Time.deltaTime;
+        }
+
+        if (wallJumpTimer > 0)
+        {
+            if (hasWallJumped && movementInputDirection == -lastWallJumpDirection)
+            {
+                rb.velocity = new Vector2(rb.velocity.x, 0.0f); //Ha a karakterrrel még mindig fel lehet ugrálni egy falon is, akkor az y tengelyen 0 helyett lehet egy kicsit negatívra állítani a sebességét
+                hasWallJumped = false;
+            }
+            else if (wallJumpTimer <= 0)
+            {
+                hasWallJumped = false;
+            }
+            else
+            {
+                wallJumpTimer -= Time.deltaTime;
+            }
         }
 
         //if (canJump && !isWallSliding) //6A-ban átkerült a NormalJump() eljárásba
@@ -206,6 +254,7 @@ public class Player_Movement : MonoBehaviour
             amountOfJumpsLeft--;
             jumpTimer = 0;
             isAttemptingToJump = false;
+            checkJumpMultiplier = true;
         }
     }
 
@@ -221,6 +270,13 @@ public class Player_Movement : MonoBehaviour
             rb.AddForce(forceToAdd, ForceMode2D.Impulse);
             jumpTimer = 0;
             isAttemptingToJump = false;
+            checkJumpMultiplier = true;
+            turnTimer = 0;
+            canMove = true;
+            canFlip = true;
+            hasWallJumped = true;
+            wallJumpTimer = wallJumpTimerSet;
+            lastWallJumpDirection = -facingDirection;
         }
     }
 
@@ -231,7 +287,7 @@ public class Player_Movement : MonoBehaviour
             rb.velocity = new Vector2(rb.velocity.x * airDragMultiplier, rb.velocity.y);
         }
 
-        else
+        else if (canMove)
         {
             rb.velocity = new Vector2(movementSpeed * movementInputDirection, rb.velocity.y);
         }
@@ -258,7 +314,7 @@ public class Player_Movement : MonoBehaviour
 
     private void Flip()
     {
-        if (!isWallSliding)
+        if (!isWallSliding && canFlip)
         {
             facingDirection *= -1; //A +1-et -1-re, a -1-et +1-re változtatja, amikor megfordítjuk a karaktert
             isFacingRight = !isFacingRight;
